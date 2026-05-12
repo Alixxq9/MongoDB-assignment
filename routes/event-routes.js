@@ -38,9 +38,7 @@ router.get('/:pageNo?', (req,res)=> {
     //find totoal documents
     let totalDocs = 0 
 
-    Event.countDocuments({}, (err,total)=> {
-
-    }).then( (response)=> {
+    Event.count({}).then( (response)=> {
         totalDocs = parseInt(response)
         Event.find({},{},q, (err,events)=> {
             //     res.json(events)
@@ -197,4 +195,4 @@ router.delete('/delete/:id',isAuthenticated, (req,res)=> {
     })
 })
 
-module.exports = router 
+module.exports = router

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+
 const eventSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -16,14 +17,14 @@ const eventSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    user_id : {
+    user_id: {
         type: String,
-        required: true
+        required: false
     },
     created_at: {
         type: Date,
         required: true
-    },
+    }
 })
 
 let Event = mongoose.model('Event', eventSchema, 'events')

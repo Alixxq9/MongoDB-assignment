@@ -69,12 +69,14 @@ router.post('/uploadAvatar', upload.single('avatar'), (req,res)=> {
     let newFields = {
         avatar: req.file.filename
     }
-    User.updateOne( {_id: req.user._id}, newFields, (err)=> {
-        if (!err) {
+    User.updateOne( {_id: req.user._id}, newFields)
+        .then(() => {
             res.redirect('/users/profile')
-        }
-
-    } )
+        })
+        .catch(err => {
+            console.log(err)
+            res.redirect('/users/profile')
+        })
 })
 
 // logout user

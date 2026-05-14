@@ -9,10 +9,11 @@ passport.serializeUser(function(user, done) {
   });
   
   passport.deserializeUser(function(id, done) {
-    User.findById(id, function(err, user) {
-      done(err, user);
-    });
+    User.findById(id)
+        .then(user => done(null, user))
+        .catch(err => done(err));
   });
+
 // register user
 passport.use('local.signup', new localStrategy({
     usernameField : 'email',
@@ -22,29 +23,27 @@ passport.use('local.signup', new localStrategy({
     if (req.body.password != req.body.confirm_password) {
         return done(null, false, req.flash('error', 'Passwords do not match'))
     } else {
-        User.findOne({email: username}, (err,user)=> {
-            if(err) {
-                return done(err)
-            }
-            if(user) {
-                return done(null, false, req.flash('error', 'Email already used'))
-            }
+        User.findOne({email: username})
+            .then(user => {
+                if(user) {
+                    return done(null, false, req.flash('error', 'Email already used'))
+                }
 
-            if (!user) {
                 //create user
                 let newUser = new User()
                 newUser.email = req.body.email
                 newUser.password = newUser.hashPassword(req.body.password),
                 newUser.avatar = "profile.png"
-                newUser.save ((err,user)=> {
-                    if(!err) {
-                        return done(null, user, req.flash('success', 'User Added'))
-                    } else {
-                        console.log(err)
-                    }
-                })
-            }
-        })
+                return newUser.save()
+            })
+            .then(user => {
+                if (user) {
+                    return done(null, user, req.flash('success', 'User Added'))
+                }
+            })
+            .catch(err => {
+                return done(err)
+            })
     }
 }))
 
@@ -57,23 +56,19 @@ passport.use('local.login', new localStrategy({
 }, (req,username,password, done)=> {
 
     //find user
-    User.findOne({email: username}, (err,user)=> {
-
-        if (err) {
-            return done(null, false, req.flash('error', 'Something wrong happened'))
-        } 
-        if(!user) {
-            return done(null, false, req.flash('error', 'user was not found'))
-        }
-        if (user) {
+    User.findOne({email: username})
+        .then(user => {
+            if(!user) {
+                return done(null, false, req.flash('error', 'user was not found'))
+            }
+            
             if (user.comparePasswords(password, user.password)) {
-
                 return done(null,user, req.flash('success', ' welcome back'))
-
             } else {
                 return done(null,false, req.flash('error', ' password is wrong'))
-
             }
-        }
-    })
+        })
+        .catch(err => {
+            return done(null, false, req.flash('error', 'Something wrong happened'))
+        })
 }))

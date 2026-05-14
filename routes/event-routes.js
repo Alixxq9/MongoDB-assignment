@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const Event = require('../models/Evnet')
+const Event = require('../models/Event')
 const { check, validationResult } = require('express-validator/check')
 const moment = require('moment');
 moment().format();
@@ -38,28 +38,28 @@ router.get('/:pageNo?', (req,res)=> {
     //find totoal documents
     let totalDocs = 0 
 
-    Event.countDocuments({}, (err,total)=> {
-
-    }).then( (response)=> {
-        totalDocs = parseInt(response)
-        Event.find({},{},q, (err,events)=> {
-            //     res.json(events)
-                 let chunk = []
-                 let chunkSize = 3
-                 for (let i =0 ; i < events.length ; i+=chunkSize) {
-                     chunk.push(events.slice( i, chunkSize + i))
-                 }
-                 //res.json(chunk)
-                  res.render('event/index', {
-                      chunk : chunk,
-                      message: req.flash('info'),
-                      total: parseInt(totalDocs),
-                      pageNo: pageNo
-                  })
-             })
-    })
-
-  
+    Event.countDocuments({})
+        .then( (response)=> {
+            totalDocs = parseInt(response)
+            return Event.find({},{},q)
+        })
+        .then((events)=> {
+            let chunk = []
+            let chunkSize = 3
+            for (let i =0 ; i < events.length ; i+=chunkSize) {
+                chunk.push(events.slice( i, chunkSize + i))
+            }
+            res.render('event/index', {
+                chunk : chunk,
+                message: req.flash('info'),
+                total: parseInt(totalDocs),
+                pageNo: pageNo
+            })
+        })
+        .catch((err) => {
+            console.log(err)
+            res.redirect('/events')
+        })
 })
 
 
@@ -90,57 +90,50 @@ router.post('/create', [
             created_at: Date.now()
         })
 
-        newEvent.save( (err)=> {
-            if(!err) {
+        newEvent.save()
+            .then(()=> {
                 console.log('event was added')
                 req.flash('info', ' The event was created successfuly')
                 res.redirect('/events')
-            } else {
+            })
+            .catch((err)=> {
                 console.log(err)
-            } 
-        })
+            })
     }
    
 })
 
 // show single event
 router.get('/show/:id', (req,res)=> {
-    Event.findOne({_id: req.params.id}, (err,event)=> {
-        
-       if(!err) {
-           
-        res.render('event/show', {
-            event: event
+    Event.findOne({_id: req.params.id})
+        .then((event)=> {
+            res.render('event/show', {
+                event: event
+            })
         })
-
-       } else {
-           console.log(err)
-       }
-    
-    })
- 
+        .catch((err)=> {
+            console.log(err)
+            res.redirect('/events')
+        })
 })
 
 // edit route
 
 router.get('/edit/:id', isAuthenticated,(req,res)=> {
 
-    Event.findOne({_id: req.params.id}, (err,event)=> {
-        
-        if(!err) {
-       
-         res.render('event/edit', {
-             event: event,
-             eventDate: moment(event.date).format('YYYY-MM-DD'),
-             errors: req.flash('errors'),
-             message: req.flash('info')
-         })
- 
-        } else {
+    Event.findOne({_id: req.params.id})
+        .then((event)=> {
+            res.render('event/edit', {
+                event: event,
+                eventDate: moment(event.date).format('YYYY-MM-DD'),
+                errors: req.flash('errors'),
+                message: req.flash('info')
+            })
+        })
+        .catch((err)=> {
             console.log(err)
-        }
-     
-     })
+            res.redirect('/events')
+        })
 
 })
 
@@ -169,14 +162,14 @@ router.post('/update',[
        }
        let query = {_id: req.body.id}
 
-       Event.updateOne(query, newfeilds, (err)=> {
-           if(!err) {
+       Event.updateOne(query, newfeilds)
+           .then(()=> {
                req.flash('info', " The event was updated successfuly"),
                res.redirect('/events/edit/' + req.body.id)
-           } else {
+           })
+           .catch((err)=> {
                console.log(err)
-           }
-       })
+           })
     }
    
 })
@@ -187,14 +180,13 @@ router.delete('/delete/:id',isAuthenticated, (req,res)=> {
 
     let query = {_id: req.params.id}
 
-    Event.deleteOne(query, (err)=> {
-
-        if(!err) {
+    Event.deleteOne(query)
+        .then(()=> {
             res.status(200).json('deleted')
-        } else {
+        })
+        .catch((err)=> {
             res.status(404).json('There was an error .event was not deleted')
-        }
-    })
+        })
 })
 
-module.exports = router 
+module.exports = router
